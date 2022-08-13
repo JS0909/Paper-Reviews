@@ -32,8 +32,8 @@ y = train.filter(regex='Y')
 
 print(x.shape, y.shape) # (39607, 56) (39607, 14)
 
-# x = x.drop(['X_10', 'X_11'], axis=1) # 결측치 있는 칼럼 제거
-# test = test.drop(['X_10', 'X_11'], axis=1)
+x = x.drop(['X_10', 'X_11'], axis=1) # 결측치 있는 칼럼 제거
+test = test.drop(['X_10', 'X_11'], axis=1)
 
 
 # '''
@@ -75,3 +75,5 @@ submission.to_csv(filepath + 'submission.csv', index=True)
 # 02 evaluate 결과:  0.43397159896467347
 
 # 03 evaluate 결과:  0.28970594972140823
+
+# 04 evaluate 결과:  0.2908193141242109
