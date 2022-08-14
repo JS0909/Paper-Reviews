@@ -224,3 +224,5 @@ submission.to_csv(filepath + 'submission.csv', index=True)
 # evaluate 결과:  0.43261472712661864
 
 # 02 evaluate 결과:  0.43397159896467347
+
+# 05 evaluate 결과:  0.29152139972392854

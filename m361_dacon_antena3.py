@@ -1,79 +1,76 @@
 import pandas as pd
+import random
+import os
 import numpy as np
+from sklearn.metrics import mean_squared_error
+
+from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.multioutput import MultiOutputRegressor
 from xgboost import XGBRegressor
-from sklearn.decomposition import PCA
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.preprocessing import LabelEncoder, MinMaxScaler
-from sklearn.metrics import r2_score, accuracy_score
-from sklearn.feature_selection import SelectFromModel
-from sklearn.pipeline import make_pipeline
-import matplotlib.pyplot as plt
-import math
-import time
-import joblib as jb
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer, KNNImputer
 
-# 1. 데이터
+
+def seed_everything(seed):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+seed_everything(704) # Seed 고정
+
 filepath = 'D:/study_home/_data/dacon_antena/'
-train = pd.read_csv(filepath+'train.csv', index_col=0)
-test = pd.read_csv(filepath+'test.csv', index_col=0)
 
-# print(train.head())
-# print(train.info())
-# print(train.isnull().sum())
-# print(train.columns)
-
-# 결측치 없음, 근데 뭐의 측정값의 0이 결측치란 얘기 있음
-# x01~x56 / y01~y14
-
-x = train.filter(regex='X')
-y = train.filter(regex='Y') 
-
-print(x.shape, y.shape) # (39607, 56) (39607, 14)
-
-x = x.drop(['X_10', 'X_11'], axis=1) # 결측치 있는 칼럼 제거
-test = test.drop(['X_10', 'X_11'], axis=1)
+train = pd.read_csv(filepath + 'train.csv',index_col=0)
+test = pd.read_csv(filepath + 'test.csv').drop(columns=['ID'])
 
 
-# '''
-# 2. 모델
-from sklearn.pipeline import make_pipeline
-xgb = MultiOutputRegressor(XGBRegressor(tree_method='gpu_hist', predictor='gpu_predictor', gpu_id=0, random_state=1234,
-                   n_estimators=100, learning_rate=0.08, gamma = 0, subsample=0.75, colsample_bytree = 1, max_depth=7))
-model = make_pipeline(MinMaxScaler(), xgb)
+train_x = train.filter(regex='X') # Input : X Featrue
+train_y = train.filter(regex='Y') # Output : Y Feature
 
-# 3. 컴파일, 훈련
-model.fit(x, y)
-# '''
+cols = ["X_10","X_11"]
+train[cols] = train[cols].replace(0, np.nan)
 
-path = 'D:\study_home\_save\_dat/'
-jb.dump(model, path + 'antena.dat')
-# model = jb.load(path + 'antena.dat')
+# train[cols].fillna(train[cols].mean(), inplace=True)
 
-# 4. 평가, 예측
-results = model.score(x, y)
-# y_pred = model.predict(x)
-# r2 = r2_score(y_pred, test)
-print('evaluate 결과: ', results)
-# print('r2: ', r2)
+# imp = KNNImputer()
 
-# 5. 제출 준비
-y_submit = model.predict(test)
-submission = pd.read_csv(filepath+'sample_submission.csv', index_col=0)
+imp = IterativeImputer(estimator = LinearRegression(), 
+                       tol= 1e-10, 
+                       max_iter=30, 
+                       verbose=2, 
+                       imputation_order='roman')
 
-for idx, col in enumerate(submission.columns):
+train = imp.fit_transform(train)
+
+
+# model = MultiOutputRegressor(XGBRegressor(n_estimators=150, learning_rate=0.08, gamma = 1, subsample=0.75, colsample_bytree = 1, max_depth=7) )
+model = MultiOutputRegressor(LinearRegression())
+# model = RandomForestRegressor()
+
+model.fit(train_x, train_y)
+preds = model.predict(test)
+print(model.score(train_x, train_y))
+
+submit = pd.read_csv(filepath +'sample_submission.csv')
+for idx, col in enumerate(submit.columns):
     if col=='ID':
         continue
-    submission[col] = y_submit[:,idx-1]
-    
-submission.to_csv(filepath + 'submission.csv', index=True)
+    submit[col] = preds[:,idx-1]
+
+submit.to_csv(filepath + 'submission.csv', index=False)
 
 
-# evaluate 결과:  0.43261472712661864
 
-# 02 evaluate 결과:  0.43397159896467347
+# 0.2842927683724148 xg부스트 스렉이
 
-# 03 evaluate 결과:  0.28970594972140823
+# 0.03953156092196286 칼럼 드랍 없이 / 제출 446위
 
-# 04 evaluate 결과:  0.2908193141242109
+# 0.03932477616005312 x10, x11 칼럼 드랍 리니어
+
+# 0.8708800720214304 랜덤포레스트, 멀티아웃풋 아니라 그런가;
+
+# 0.039531560921963645 x10, x11 칼럼 결측치 처리(IterativeImputer)
+
+# 0.039531560921963645 x10, x11 칼럼 결측치 처리(KNNImputer)
+
+# 8번 0.03953156092196286
