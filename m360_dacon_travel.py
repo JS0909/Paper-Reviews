@@ -1,7 +1,9 @@
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from xgboost import XGBClassifier, XGBRFClassifier
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.preprocessing import LabelEncoder
@@ -64,7 +66,7 @@ for i in idxarr:
 
 # 피처임포턴스 그래프 보기 위해 데이터프레임형태의 x_, y_ 놔둠 / 훈련용 넘파이어레이형태의 x, y 생성-----------
 # x_ = train.drop(['ProdTaken','NumberOfChildrenVisiting','NumberOfPersonVisiting','OwnCar'], axis=1) # 피처임포턴스로 확인한 중요도 낮은 탑3 제거
-x_ = train.drop(['ProdTaken','NumberOfChildrenVisiting','NumberOfPersonVisiting','OwnCar', 'MonthlyIncome'], axis=1)
+x_ = train.drop(['ProdTaken','NumberOfChildrenVisiting','NumberOfPersonVisiting','OwnCar', 'MonthlyIncome', 'Designation'], axis=1)
 # x_ = train.drop(['ProdTaken'], axis=1)
 y_ = train['ProdTaken']
 x = np.array(x_)
@@ -72,7 +74,7 @@ y = np.array(y_)
 y = y.reshape(-1, 1) # y값 reshape 해야되서 x도 넘파이로 바꿔 훈련하는 것
 
 # test = test.drop(['NumberOfChildrenVisiting','NumberOfPersonVisiting','OwnCar'], axis=1) # 피처임포턴스로 확인한 중요도 낮은 탑3 제거
-test = test.drop(['NumberOfChildrenVisiting','NumberOfPersonVisiting','OwnCar', 'MonthlyIncome'], axis=1)
+test = test.drop(['NumberOfChildrenVisiting','NumberOfPersonVisiting','OwnCar', 'MonthlyIncome','Designation'], axis=1)
 test = np.array(test)
 # print(x.shape, y.shape)
 #-----------------------------------------------------------------------------------------------------------
@@ -180,7 +182,7 @@ for i in range(x.shape[1]):
 '''
 
 parameters_xgb = {
-            'n_estimators':[100,200,300,400,500],
+            'n_estimators':[50,100,200,300,400,500],
             'learning_rate':[0.1,0.2,0.3,0.5,1,0.01,0.001],
             'max_depth':[None,2,3,4,5,6,7,8,9,10],
             'gamma':[0,1,2,3,4,5,7,10,100],
@@ -202,13 +204,12 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=0.8, random
 # print(np.unique(y_train, return_counts=True))
 
 # 2. 모델
-xgb = XGBClassifier(tree_method='gpu_hist', predictor='gpu_predictor', gpu_id=0)
-rnf = RandomForestClassifier(random_state=704) # 704 : 0.9053708439897699
-
+xgb = XGBRFClassifier(tree_method='gpu_hist', predictor='gpu_predictor', gpu_id=0)
+rnf = RandomForestClassifier(random_state=678) # 704 : 0.9053708439897699 / Designation 드랍하면 678 : 0.9053708439897699
 # model = xgb
 # model = rnf
 # model = make_pipeline(MinMaxScaler(), HalvingRandomSearchCV(xgb, parameters_xgb, cv=5, n_jobs=-1, verbose=2))
-model = make_pipeline(MinMaxScaler(), HalvingRandomSearchCV(rnf, parameters_rnf, cv=5, n_jobs=-1, verbose=2, random_state=999))
+model = make_pipeline(MinMaxScaler(), HalvingRandomSearchCV(rnf, parameters_rnf, cv=6, n_jobs=-1, verbose=2, random_state=999))
 # model = make_pipeline(MinMaxScaler(), GridSearchCV(rnf, parameters_rnf, cv=5, n_jobs=-1, verbose=2))
 # model = make_pipeline(MinMaxScaler(), xgb)
 # model = make_pipeline(MinMaxScaler(), rnf)
@@ -401,6 +402,9 @@ submission.to_csv(filepath + 'submission.csv', index = True)
 
 # 17
 # 스코어:  0.9028132992327366
+
+# 18
+# 0.907928388746803
 
 '''
  #   Column                    Non-Null Count  Dtype
