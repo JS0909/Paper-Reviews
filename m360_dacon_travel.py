@@ -138,7 +138,7 @@ a13 = [  14,   59,   93,  105,  142,  167,  187,  203,  209,  218,  230,
        1739, 1750, 1783, 1791, 1818, 1822, 1823, 1856, 1870, 1887, 1899,
        1927]
 
-for i in range(len(a3)):
+for i in range(len(a3)): # DurationOfPitch
     x[a3[i]][3] = 20
 
 # x[485][4] = np.nan # Occupation
@@ -147,25 +147,25 @@ for i in range(len(a3)):
 #     x[a6[i]][6] = np.nan
     
 for i in range(len(a10)): # NumberOfTrips
-    x[a10[i]][10] = np.nan
+    x[a10[i]][10] = 5.7
 
-for i in range(len(a13)): # Designation
-    x[a13[i]][13] = np.nan
+# for i in range(len(a13)): # Designation
+#     x[a13[i]][13] = np.nan
     
 # outliers_printer(x)
-
+'''
 x = pd.DataFrame(x, columns=[x_.columns])
 
 # x['Occupation'].fillna(x['Occupation'].median, inplace=True)
 x['ProductPitched'].fillna(x['ProductPitched'].median, inplace=True)
-x['Designation'].fillna(x['Designation'].median, inplace=True)
+# x['Designation'].fillna(x['Designation'].median, inplace=True)
 x['NumberOfTrips'].fillna(x['NumberOfTrips'].median, inplace=True)
 
 ipt = IterativeImputer(max_iter = 100, random_state = 999)
 # ipt = KNNImputer()
 x = ipt.fit_transform(x)
 x = np.array(x)
-
+'''
 
 ''' PCA 반복문 - XGB 테스트 // 별로 안좋게 나옴, LDA는 y라벨 두개뿐이라 큰 의미 없음
 for i in range(x.shape[1]):
@@ -398,6 +398,9 @@ submission.to_csv(filepath + 'submission.csv', index = True)
 # 16 m360_travel6 + ProductPitched 이상치 처리안함
 # 스코어:  0.9002557544757033
 # 걸린 시간:  6.224222183227539
+
+# 17
+# 스코어:  0.9028132992327366
 
 '''
  #   Column                    Non-Null Count  Dtype
