@@ -1,9 +1,5 @@
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from xgboost import XGBClassifier, XGBRFClassifier
 from sklearn.decomposition import PCA
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.preprocessing import LabelEncoder
@@ -12,7 +8,6 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.pipeline import make_pipeline
 import matplotlib.pyplot as plt
 import math
-import time
 
 from sklearn.experimental import enable_halving_search_cv
 from sklearn.model_selection import train_test_split, StratifiedKFold,\
@@ -181,142 +176,43 @@ for i in range(x.shape[1]):
 #------------------------------------------------------------------
 '''
 
-parameters_xgb = {
-            'n_estimators':[50,100,200,300,400,500],
-            'learning_rate':[0.1,0.2,0.3,0.5,1,0.01,0.001],
-            'max_depth':[None,2,3,4,5,6,7,8,9,10],
-            'gamma':[0,1,2,3,4,5,7,10,50,100],
-            'min_child_weight':[0,0.1,0.001,0.5,1,5,10,100],
-            'subsample':[0,0.1,0.2,0.3,0.5,0.7,1],
-            'reg_alpha':[0,0.1,0.01,0.001,1,2,10],
-            'reg_lambda':[0,0.1,0.01,0.001,1,2,10],
-              } 
-
-parameters_rnf = [
-    {'n_estimators':[100,200,300]},
-    {'max_depth':[None,6,8,10,12,50]},
-    {'min_samples_leaf':[1,2,3,5,7,10,11,13]},
-    {'min_samples_split':[2,3,5,7,10,11,12,13]},
-    {'n_jobs':[-1]}
-]
-
 x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=0.8, random_state=999, shuffle=True)
 # print(np.unique(y_train, return_counts=True))
+# print(x_train.shape) # (1564, 13)
 
-# 2. 모델
-xgb = XGBRFClassifier(tree_method='gpu_hist', predictor='gpu_predictor', gpu_id=0)
-rnf = RandomForestClassifier(random_state=678) # 704 : 0.9053708439897699 / Designation 드랍하면 678 : 0.9053708439897699
-# model = xgb
-# model = rnf
-# model = make_pipeline(MinMaxScaler(), HalvingRandomSearchCV(xgb, parameters_xgb, cv=5, n_jobs=-1, verbose=2))
-model = make_pipeline(MinMaxScaler(), HalvingRandomSearchCV(rnf, parameters_rnf, cv=6, n_jobs=-1, verbose=2, random_state=999))
-# model = make_pipeline(MinMaxScaler(), GridSearchCV(rnf, parameters_rnf, cv=5, n_jobs=-1, verbose=2))
-# model = make_pipeline(MinMaxScaler(), xgb)
-# model = make_pipeline(MinMaxScaler(), rnf)
+# 2. 모델구성
+from tensorflow.python.keras.models import Sequential
+from tensorflow.python.keras.layers import Dense, Dropout
+model = Sequential()
+model.add(Dense(32, input_dim=13))
+model.add(Dense(32, activation='relu'))
+model.add(Dropout(0.3))
+model.add(Dense(64, activation='swish'))
+model.add(Dropout(0.3))
+model.add(Dense(128, activation='relu'))
+model.add(Dropout(0.3))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(32, activation='relu'))
+model.add(Dense(1, activation='sigmoid'))
 
-# 3. 훈련
-''' Feature importances 확인
-def plot_feature_importances(model):
-    plt.figure(figsize=(13,8))
-    n_features = x_.shape[1]
-    plt.barh(np.arange(n_features), model.feature_importances_, align='center')
-                # x                     y
-    plt.yticks(np.arange(n_features), x_.columns) # 눈금 설정
-    plt.xlabel('Feature Importances')
-    plt.ylabel('Features')
-    plt.ylim(-1, n_features) # ylimit : 축의 한계치 설정
-    if str(models[i]).startswith('XGBClassifier'):
-        plt.title('XGB()')
-    else:
-        plt.title(model)
+# 3. 컴파일, 훈련
+model.compile(loss = 'binary_crossentropy', optimizer='adam')
 
-plot_feature_importances(model)
-plt.show()
-# NumberOfChildrenVisiting, NumberOfPersonVisiting, OwnCar 가장 영향력 적음
-# ----------------------------------------------------------------------
-'''
-
-import joblib
-joblib.dump(model,'D:\study_home\_data\dacon_travel\_dat/m360_travel6.dat')
-# model = joblib.load('D:\study_home\_data\dacon_travel\_dat/m360_travel.dat')
-
-
-# 2. 모델
-'''
-#----------------------------모델 셀렉션----------------------------------------------------------
-model = RandomForestClassifier(n_estimators=100, random_state=1234)
-
-model.fit(x_train, y_train)
-
-print('테스트 스코어: ', model.score(x_test, y_test))
-
-score = accuracy_score(y_test, model.predict(x_test))
-print('score 결과: ', score)
-
-print(model.feature_importances_)
-
-thresholds = model.feature_importances_
-print('-----------------------------------------------')
-bscore = 0
-idx_ = 0
-for i in range(len(thresholds)):
-    selection = SelectFromModel(model, threshold=thresholds[i], prefit=True)
-    select_x_train = selection.transform(x_train)
-    select_x_test = selection.transform(x_test)
-    print(select_x_train.shape, select_x_train.shape)
-    
-    selection_model = XGBClassifier(n_estimators=100,
-              learning_rate=1,
-              max_depth=2,
-              gamma=0,
-              min_child_weight=1,
-              subsample=1,
-              colsample_bytree=0.5,
-              colsample_bylevel=1,
-              colsample_bynode=1,
-              reg_alpha=0.01,
-              tree_method='gpu_hist', predictor='gpu_predictor', gpu_id=0, random_state=1234,
-              )
-    
-    selection_model.fit(select_x_train, y_train)
-    
-    y_predict = selection_model.predict(select_x_test)
-    score = accuracy_score(y_test, y_predict)
-    print('Thresh=%.3f, n=%d, R2: %.2f%%'%(thresholds[i], select_x_train.shape[1], score*100), '\n')
-
-    if score >= bscore:
-        bscore = score
-        idx_=i
-
-f_to_drop = []
-for i in range(len(thresholds)):
-    if thresholds[idx_]>=thresholds[i]:
-        f_to_drop.append(i)
-        
-print(f_to_drop)
-# [0, 7, 8, 11, 15, 16, 22, 24, 31, 32, 39, 40, 47, 48, 55, 56, 57]
-
-xaf_train = np.delete(x_train, f_to_drop, axis=1)
-xaf_test = np.delete(x_test, f_to_drop, axis=1)
-
-model.fit(xaf_train, y_train)
-
-print('드랍 후 테스트 스코어: ', model.score(xaf_test, y_test))
-
-score = accuracy_score(y_test, model.predict(xaf_test))
-print('드랍 후 acc_score 결과: ', score)
-
-#-------------------------------------------------------------------------------------------------------------
-'''
-
-start = time.time()
-model.fit(x_train, y_train)
-end = time.time()
+from tensorflow.python.keras.callbacks import EarlyStopping
+earlyStopping = EarlyStopping(monitor='val_loss', patience=50, mode='min', verbose=1, restore_best_weights=True)
+hist = model.fit(x_train, y_train, epochs=2000, batch_size=50,
+                callbacks=[earlyStopping],
+                validation_split=0.25)
 
 # 4. 평가, 예측
-results = model.score(x_test, y_test)
-print('스코어: ', results)
-print('걸린 시간: ', end-start)
+loss = model.evaluate(x_test, y_test)
+print("loss : ", loss)
+
+y_predict = model.predict(x_test)
+y_predict = np.round(y_predict,0)
+acc = accuracy_score(y_test, y_predict)
+print('r2스코어 : ', acc)
+
 
 # 5. 제출 준비
 y_submit = model.predict(test)
@@ -325,48 +221,6 @@ submission = pd.read_csv(filepath+'submission.csv', index_col=0)
 submission['ProdTaken'] = y_submit
 submission.to_csv(filepath + 'submission.csv', index = True)
 
-
-
-# submission 1번파일
-# 스코어:  0.8673469387755102
-# 걸린 시간:  22.424696445465088
-
-# submission 2번파일
-# 스코어:  0.8567774936061381
-# 걸린 시간:  147.84010410308838
-
-# submission 3번파일
-# 스코어:  0.8695652173913043
-# 걸린 시간:  0.6045560836791992
-
-# submission 4번파일 랜포
-# 스코어:  0.8797953964194374
-# 걸린 시간:  0.1614227294921875
-
-# submission 5번파일 랜포+halving
-# 스코어:  0.8746803069053708
-# 걸린 시간:  4.660583972930908
-
-# submission 6번파일 랜포+halving+랜덤시드 134로 바꿈
-# 스코어:  0.887468030690537
-# 걸린 시간:  4.499013185501099
-
-# submission 7번파일
-# (1564, 15) (1564, 15) + 랜포 디폴트 + 첨에 칼럼드랍 안했음
-# Thresh=0.028, n=15, R2: 88.24% 
-# 스코어:  0.8772378516624041
-# 걸린 시간:  0.16129612922668457
-
-# 드랍 후 테스트 스코어:  0.8772378516624041
-# 드랍 후 acc_score 결과:  0.8772378516624041
-
-# submission 8번파일
-# 스코어:  0.8746803069053708
-# 걸린 시간:  4.406193733215332
-
-# submission 9번파일 + 월급 제외
-# 스코어:  0.8976982097186701
-# 걸린 시간:  4.571194648742676
 
 # submission 10번파일 + 월급 제외 + 3 DurationOfPitch의 이상치 제거
 # 스코어:  0.9028132992327366

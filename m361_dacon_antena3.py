@@ -10,13 +10,15 @@ from sklearn.multioutput import MultiOutputRegressor
 from xgboost import XGBRegressor
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, KNNImputer
+from catboost import CatBoostClassifier
+
 
 
 def seed_everything(seed):
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
-seed_everything(704) # Seed 고정
+seed_everything(999) # Seed 고정
 
 filepath = 'D:/study_home/_data/dacon_antena/'
 
@@ -43,8 +45,8 @@ imp = IterativeImputer(estimator = LinearRegression(),
 train = imp.fit_transform(train)
 
 
-# model = MultiOutputRegressor(XGBRegressor(n_estimators=150, learning_rate=0.08, gamma = 1, subsample=0.75, colsample_bytree = 1, max_depth=7) )
-model = MultiOutputRegressor(LinearRegression())
+model = MultiOutputRegressor(XGBRegressor(n_estimators=150, learning_rate=0.08, gamma = 1, subsample=0.75, colsample_bytree = 1, max_depth=7) )
+# model = MultiOutputRegressor(LinearRegression())
 # model = RandomForestRegressor()
 
 model.fit(train_x, train_y)

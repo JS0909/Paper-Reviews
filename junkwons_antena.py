@@ -91,6 +91,8 @@ print('Done.')
 submission.to_csv('test23.csv',index=False)
  
  
+ 
+ 
 # 최적의 매개변수 :  {'learning_rate': 0.1, 'n_estimators': 100}
 # 최상의 점수 :  0.0634512010221178
 # 걸린 시간 :  56.3487868309021
