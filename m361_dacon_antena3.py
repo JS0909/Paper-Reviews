@@ -25,6 +25,9 @@ filepath = 'D:/study_home/_data/dacon_antena/'
 train = pd.read_csv(filepath + 'train.csv',index_col=0)
 test = pd.read_csv(filepath + 'test.csv').drop(columns=['ID'])
 
+train = train.drop(['X_05', 'X_06'], axis=1)
+test = test.drop(['X_05', 'X_06'], axis=1)
+
 
 train_x = train.filter(regex='X') # Input : X Featrue
 train_y = train.filter(regex='Y') # Output : Y Feature
@@ -45,7 +48,7 @@ imp = IterativeImputer(estimator = LinearRegression(),
 train = imp.fit_transform(train)
 
 
-model = MultiOutputRegressor(XGBRegressor(n_estimators=150, learning_rate=0.08, gamma = 1, subsample=0.75, colsample_bytree = 1, max_depth=7) )
+model = MultiOutputRegressor(XGBRegressor(n_estimators=150, learning_rate=0.08, gamma = 2, subsample=0.75, colsample_bytree = 1, max_depth=8) )
 # model = MultiOutputRegressor(LinearRegression())
 # model = RandomForestRegressor()
 
@@ -76,3 +79,14 @@ submit.to_csv(filepath + 'submission.csv', index=False)
 # 0.039531560921963645 x10, x11 칼럼 결측치 처리(KNNImputer)
 
 # 8번 0.03953156092196286
+
+# 0.3262773846858026
+
+# 0.39481816233161177
+
+# 0.333400707984773
+
+# 칼럼 드랍
+# 0.3157406271283743
+
+# 칼럼 두개만 드랍한거 제출하기
