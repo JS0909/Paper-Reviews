@@ -6,9 +6,13 @@ from sklearn.preprocessing import LabelEncoder
 import matplotlib.pyplot as plt
 from catboost import CatBoostClassifier
 import optuna
+from optuna import Trial
+from optuna.samplers import TPESampler
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score
+import joblib as jl
+
 
 #1. data
 '''
@@ -34,7 +38,7 @@ MonthlyIncome : 월 급여
 ProdTaken : 여행 패키지 신청 여부 (0: 신청 안 함, 1: 신청함)
 '''
 
-path = 'D:\study_home\_data\dacon_travel/'
+path = 'D:\study_home\_data\_travel/'
 train_set = pd.read_csv(path + 'train.csv', index_col=0)
 test_set = pd.read_csv(path + 'test.csv', index_col=0)
 
@@ -47,14 +51,14 @@ test_set.loc[ test_set['Occupation'] == 'Free Lancer', 'Occupation'] = 'Salaried
 train_set['TypeofContact'].fillna('Self Enquiry', inplace=True)
 test_set['TypeofContact'].fillna('Self Enquiry', inplace=True)
 
-# print(train_set.groupby('Designation')['Age'].median())
+print(train_set.groupby('Designation')['Age'].median())
 train_set['Age'].fillna(train_set.groupby('Designation')['Age'].transform('mean'), inplace=True)
 test_set['Age'].fillna(test_set.groupby('Designation')['Age'].transform('mean'), inplace=True)
 
 train_set['Age'] = np.round(train_set['Age'], 0).astype(int)
 test_set['Age'] = np.round(test_set['Age'], 0).astype(int)
-combine = [train_set,test_set]
-for dataset in combine:    
+datasets = [train_set,test_set]
+for dataset in datasets:    
     dataset.loc[ dataset['Age'] <= 20, 'Age'] = 0
     dataset.loc[(dataset['Age'] > 20) & (dataset['Age'] <= 29), 'Age'] = 1
     dataset.loc[(dataset['Age'] > 29) & (dataset['Age'] <= 39), 'Age'] = 2
@@ -86,7 +90,6 @@ for c in cols:
 def outliers(data_out):
     quartile_1, q2 , quartile_3 = np.percentile(data_out, [25,50,75])
     iqr =quartile_3-quartile_1
-    print("iqr :" ,iqr)
     lower_bound = quartile_1 - (iqr * 1.5)
     upper_bound = quartile_3 + (iqr * 1.5)
     return np.where((data_out>upper_bound)|
@@ -106,9 +109,9 @@ def outliers_printer(dataset):
         
     plt.show()
                      
-# outliers_printer(train_set.values)
-# plt.boxplot(train_set['DurationOfPitch'])                           
-# plt.show()
+outliers_printer(train_set.values)
+plt.boxplot(train_set['DurationOfPitch'])                           
+plt.show()
 
 x = train_set.drop(['ProdTaken','NumberOfPersonVisiting','NumberOfChildrenVisiting', 'OwnCar', 'MonthlyIncome', 'NumberOfFollowups'], axis=1)
 test_set = test_set.drop(['NumberOfPersonVisiting','NumberOfChildrenVisiting','OwnCar', 'MonthlyIncome', 'NumberOfFollowups'], axis=1)
@@ -118,7 +121,7 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, train_size=0.9, shuffl
 
 
 # 2. model
-'''
+
 # optuna
 def objectiveCAT(trial: Trial, x_train, y_train, x_test):
     param = {
@@ -130,7 +133,7 @@ def objectiveCAT(trial: Trial, x_train, y_train, x_test):
         'l2_leaf_reg' : trial.suggest_float('l2_leaf_reg', 0, 8),
         'random_state' : 1127
     }
-    # 모델
+    # model
     model = CatBoostClassifier(**param)
     CAT_model = model.fit(x_train, y_train, verbose=0)
     
@@ -138,15 +141,13 @@ def objectiveCAT(trial: Trial, x_train, y_train, x_test):
     
     return score
 
-# MAE가 최소가 되는 방향으로 학습을 진행
 # TPESampler : Sampler using TPE (Tree-structured Parzen Estimator) algorithm.
 study = optuna.create_study(direction='maximize', sampler=TPESampler())
 
-# n_trials 지정해주지 않으면, 무한 반복
 study.optimize(lambda trial : objectiveCAT(trial, x, y, x_test), n_trials = 1)
 
 print('Best trial : score {}, \nparams {}'.format(study.best_trial.value, study.best_trial.params))
-'''
+
 
 # Best trial : score 1.0,
 # params {'n_estimators': 1304,'depth': 8, 'fold_permutation_block': 142, 'learning_rate': 0.21616891196578603, 
@@ -160,13 +161,13 @@ cat_parameters = {"learning_rate" : [0.01],
                 'l2_leaf_reg' :[0.33021257848638497]}
 cat = CatBoostClassifier(n_estimators=1304, random_state=72, verbose=0)
 model = GridSearchCV(cat, cat_parameters, cv=kfold)
+model.fit(x_train,y_train)   
 
 
 # 4. evaluate
-model.fit(x_train,y_train)   
 y_predict = model.predict(x_test)
-results = accuracy_score(y_test,y_predict)
-print('acc :',results)
+score = accuracy_score(y_test,y_predict)
+print('acc :', score)
 
 
 # 5. preparing submission
@@ -180,8 +181,7 @@ submission.to_csv(path+'submission.csv',index=False)
 
 
 # 6. saving model & weights
-# import joblib as jl
-# jl.dump(model, path + 'save.dat')
+jl.dump(model, path + 'save.dat')
 
 
 # acc : 0.9795918367346939
