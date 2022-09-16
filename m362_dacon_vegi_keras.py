@@ -4,8 +4,8 @@ import numpy as np
 import os
 import time
 
-from tensorflow.python.keras.models import Sequential, Model, load_model
-from tensorflow.python.keras.layers import Input, Dense, GRU, Conv1D, Flatten, LSTM, Dropout
+from tensorflow.keras.models import Sequential, Model, load_model
+from tensorflow.keras.layers import Input, Dense, GRU, Conv1D, Flatten, LSTM, Dropout, Bidirectional
 from tensorflow.python.keras.callbacks import EarlyStopping
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
@@ -23,18 +23,16 @@ train_data, label_data, val_data, val_target, test_input, test_target = jb.load(
 # print(val_data.shape) # (206, 1440, 37)
 # print(test_target.shape) # (195,)
 
+val_data = (val_data - np.mean(train_data)) / np.std(train_data)
+train_data = (train_data - np.mean(train_data)) / np.std(train_data)
+
 
 # 2. Model
 model = Sequential()
 # model.add(GRU(256, input_shape=(1440,37)))
-model.add(LSTM(256, input_shape=(1440,37)))
-model.add(Dropout(0.2))
-# model.add(Dense(256, activation='relu'))
-model.add(Dense(128, activation='relu'))
+model.add(Bidirectional(LSTM(100, input_shape=(1440,37))))
+# model.add(Dropout(0.2))
 model.add(Dense(100, activation='relu'))
-model.add(Dropout(0.2))
-model.add(Dense(256, activation='relu'))
-model.add(Dropout(0.2))
 model.add(Dense(128, activation='relu'))
 model.add(Dense(64))
 model.add(Dense(32, activation='relu'))
@@ -53,10 +51,10 @@ model.compile(loss='mse', optimizer='adam', metrics=['mae'])
 Es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=100, restore_best_weights=True)
 
 start = time.time()
-hist = model.fit(train_data,label_data, batch_size=200, epochs=100, callbacks=[Es], validation_data=(val_data, val_target))
+hist = model.fit(train_data,label_data, batch_size=2000, epochs=50, callbacks=[Es], validation_data=(val_data, val_target))
 end = time.time()
 
-model.save('D:\study_home\_save\_h5/vegi07.h5')
+model.save('D:\study_home\_save\_h5/vegi08.h5')
 # model = load_model('D:\study_home\_save\_h5/vegi08.h5')
 
 
@@ -103,3 +101,6 @@ with zipfile.ZipFile("submissionKeras.zip", 'w') as my_zip:
 
 # vegi06
 # [0.28508618474006653, 0.24901825189590454]
+
+# vegi07
+# [0.2825902998447418, 0.24616381525993347]

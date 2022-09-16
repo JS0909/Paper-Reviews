@@ -29,7 +29,7 @@ warnings.filterwarnings(action='ignore')
 
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
+print(device)
 
 # ## Hyperparameter Setting
 
@@ -143,7 +143,14 @@ class BaseModel(nn.Module):
         super(BaseModel, self).__init__()
         self.lstm = nn.LSTM(input_size=37, hidden_size=256, batch_first=True, bidirectional=False, dropout=0.2)
         self.classifier = nn.Sequential(
-            nn.Linear(256, 1),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 32),
+            nn.ReLU(),
+            nn.Linear(32, 16),
+            nn.Linear(16, 1),
         )
         
     def forward(self, x):
@@ -247,7 +254,7 @@ def inference_per_case(model, test_loader, test_path, device):
             
             model_pred = model(X)
             
-            model_pred = model_pred.cpu().numpy().reshape(-1).tolist()
+            model_pred = model_pred.cpu().reshape(-1).tolist()
             
             pred_list += model_pred
     
@@ -315,3 +322,13 @@ with zipfile.ZipFile("submission.zip", 'w') as my_zip:
 # }
 
 
+
+
+
+
+# Traceback (most recent call last):
+#   File "d:\study_home\study_02\m362_dacon_vegi_torch.py", line 267, in <module>
+#     inference_per_case(best_model, test_loader, test_target_path, device)
+#   File "d:\study_home\study_02\m362_dacon_vegi_torch.py", line 252, in inference_per_case
+#     model_pred = model_pred.cpu().numpy().reshape(-1).tolist()
+# RuntimeError: Numpy is not available
