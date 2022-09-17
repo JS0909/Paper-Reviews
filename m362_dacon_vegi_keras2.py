@@ -85,4 +85,3 @@ with zipfile.ZipFile("submissionKeras.zip", 'w') as my_zip:
         my_zip.write(i)
     my_zip.close()
 
-
