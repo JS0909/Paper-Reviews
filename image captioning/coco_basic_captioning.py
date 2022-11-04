@@ -7,13 +7,13 @@ from sklearn.utils import shuffle
 from keras.applications.vgg16 import VGG16, preprocess_input
 from keras.applications.vgg19 import VGG19
 from keras.applications.resnet import ResNet50, ResNet101
-from keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 from keras.models import Model, load_model
 from tensorflow.keras.utils import to_categorical
 from keras.layers import Input, Dense, LSTM, Embedding, Dropout, add
-
+'''
 #================ json 파일 처리 ==================
 num_examples= 400000     # 훈련에 사용할 캡션 개수
 
@@ -41,9 +41,9 @@ train_captions = train_captions[:num_examples]
 img_name_vector = img_name_vector[:num_examples]
 
 print('train_captions :', len(train_captions))
-print('all_captions :', len(all_captions))
+print('train_images :', len(img_name_vector))
 
-pickle.dump(train_captions, open(os.path.join('F:\study_home\_data/team_project\coco\img_features\img_features', 'res101_train_captions80000.pkl'), 'wb'))
+pickle.dump(train_captions, open(os.path.join('F:\study_home\_data/team_project\coco\img_features/', 'res101_train_captions40k.pkl'), 'wb'))
 # print(train_captions[:1])
 # print(img_name_vector[:1])
 # ['startseq A skateboarder performing a trick on a skateboard ramp. endseq']
@@ -82,20 +82,20 @@ for img_path in img_name_vector:
     
 
 # store features in pickle
-pickle.dump(features, open(os.path.join('F:\study_home\_data/team_project\coco\img_features/', 'res101_features80000.pkl'), 'wb'))
+pickle.dump(features, open(os.path.join('F:\study_home\_data/team_project\coco\img_features/', 'res101_features40k.pkl'), 'wb'))
 print('img processing done.')
 
 
 # features = [[첫번째이미지피처], [두번째이미지피처], ..., [마지막이미지피처]]
 #===================================================================================================================================
-
+'''
 
 # features 파일 불러오기
-with open(os.path.join('F:\study_home\_data/team_project\coco\img_features/', 'res101_features80000.pkl'), 'rb') as f:
+with open(os.path.join('F:\study_home\_data/team_project\coco\img_features/', 'res101_features40k.pkl'), 'rb') as f:
   features = pickle.load(f)
 
 #================ 캡션 파일 전처리 ====================
-with open(os.path.join('F:\study_home\_data/team_project\coco\img_features/', 'res101_train_captions80000.pkl'), 'rb') as f:
+with open(os.path.join('F:\study_home\_data/team_project\coco\img_features/', 'res101_train_captions40k.pkl'), 'rb') as f:
   captions = pickle.load(f)
 
 print(len(features))
@@ -180,9 +180,11 @@ se3 = Dense(256)(se2)
 
 # decoder model
 decoder1 = add([fe2, se3])
-decoder2 = LSTM(256)(decoder1)
-decoder3 = Dense(256, activation='relu')(decoder2)
-outputs = Dense(vocab_size, activation='softmax')(decoder3)
+decoder2 = LSTM(256, return_sequences=True)(decoder1)
+decoder3 = LSTM(256, return_sequences=True)(decoder2)
+decoder4 = LSTM(256,)(decoder3)
+decoder5 = Dense(256, activation='relu')(decoder4)
+outputs = Dense(vocab_size, activation='softmax')(decoder5)
 
 model = Model(inputs=[inputs1, inputs2], outputs=outputs)
 model.compile(loss='categorical_crossentropy', optimizer='adam')
@@ -191,12 +193,12 @@ model.compile(loss='categorical_crossentropy', optimizer='adam')
 # train the model
 print('start training...')
 epochs = 40
-batch_size = 50
+batch_size = 128
 steps = len(train_cap) // batch_size # 1 batch 당 훈련하는 데이터 수
 
 # 제너레이터 함수에서 yield로 252개의 [X1, X2], y 묶음이 차곡차곡 쌓여 있고  steps_per_epoch=steps 이 옵션으로
 # epoch 1번짜리 fit을 돌때 정해준steps번 generator 를 호출함. iterating 을 steps번 함
-
+'''
 for i in range(epochs):
   print(f'epoch: {i+1}')
   # create data generator
@@ -206,9 +208,9 @@ for i in range(epochs):
 print('done training.')
 
 # save the model
-model.save('F:\study_home\_data/team_project\coco\model_save/res101_model3_80000.h5')
+model.save('F:\study_home\_data/team_project\coco\model_save/res101_model3_40k.h5')
 print('model saved.')
-
+'''
 
 def idx_to_word(integer, tokenizer):
   for word, index in tokenizer.word_index.items():
@@ -243,8 +245,7 @@ def predict_caption(model, image, tokenizer, max_length): # 여기서 image 자�
       
   return in_text
 
-image = load_img('D:\study_data\_data/team_project\predict_img/06.jpg', target_size=(224, 224))
-# convert image pixels to numpy array
+image = load_img('F:\study_home\_data/team_project\predict_img/05.jpg', target_size=(224, 224))
 image = img_to_array(image)
 # reshape data for model
 image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
@@ -255,7 +256,7 @@ model = Model(inputs=model.inputs, outputs=model.layers[-1].output)
 predic_features = model.predict(image, verbose=1)
 
 print('prediction..')
-model = load_model('F:\study_home\_data/team_project\coco\model_save/res101_model3_80000.h5')
+model = load_model('F:\study_home\_data/team_project\coco\model_save/res101_model3_40k.h5')
 y_pred = predict_caption(model, predic_features, tokenizer, max_length)
 y_pred = y_pred.replace('startseq', '')
 y_pred = y_pred.replace('endseq', '')
@@ -311,3 +312,6 @@ print("BLEU-2: %f" % corpus_bleu(actual, predicted, weights=(0.5, 0.5, 0, 0)))
 # 40에포 50배치 1만장 vgg19
 # a brightly colored clock stands in front of a building
 # BLEU-1: 0.980556
+
+# 40만장 40에포 128배치
+# a man riding a motorcycle down a street 
