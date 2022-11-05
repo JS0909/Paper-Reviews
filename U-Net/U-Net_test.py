@@ -313,3 +313,5 @@ plt.subplot(1, 2, 2)
 plt.imshow(label_class_predicted)
 
 plt.show()
+
+
