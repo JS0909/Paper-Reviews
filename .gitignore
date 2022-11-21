@@ -1,5 +1,6 @@
 *.pdf
 *.csv
 *.png
+*.pth
 
-
+data
