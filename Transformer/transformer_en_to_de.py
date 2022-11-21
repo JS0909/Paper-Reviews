@@ -33,7 +33,6 @@ def tokenize_de(text):
 
 
 from torchtext.data import Field, BucketIterator
-
 SRC = Field(tokenize=tokenize_en, init_token="<sos>", eos_token="<eos>", lower=True, batch_first=True)
 TRG = Field(tokenize=tokenize_de, init_token="<sos>", eos_token="<eos>", lower=True, batch_first=True)
 # batch가 첫번째 차원
