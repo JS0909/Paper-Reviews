@@ -5,7 +5,7 @@ import torchvision
 import matplotlib.pyplot as plt
 import model
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True' # 에러 대응
+os.environ['KMP_DUPLICATE_LIB_OK']='True' # 데이터셋 에러 대응
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 vit = model.VisionTransformer(patch_vec_size=48, num_patches=64,
