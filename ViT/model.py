@@ -12,13 +12,16 @@ class LinearProjection(nn.Module):
         self.cls_token = nn.Parameter(torch.randn(1, latent_vec_dim))   
         # (1, d)짜리를 생성, 학습 가능해야하므로 Parameter로 정의함
         
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches+1, latent_vec_dim)) # (1, 패치수+1, d), 얘도 학습 가능해야함
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches+1, latent_vec_dim))
+        # (1, 패치수+1, d), 얘도 학습 가능해야함, randn : 평균 0, 표준편차 1이 되도록 랜덤값 뽑고 훈련하면서 바뀜
+        
         self.dropout = nn.Dropout(drop_rate)
 
     def forward(self, x):
         batch_size = x.size(0)
         x = torch.cat([self.cls_token.repeat(batch_size, 1, 1), self.linear_proj(x)], dim=1)
-        # (1, d)짜리를 batch_size 만큼 repeat하여 맨 왼쪽에 붙임, (batch_size, 1, d)
+        # (1, d)짜리를 batch_size 만큼 repeat하여 맨 왼쪽에 붙임, cls: (batch_size, 1, d) 와 embedding(X): (batch_size, 패치수, d)를
+        # dim = 1 -> 패치 수 차원에 대해, 프로젝션 이후 나온 값과 왼쪽에 concat 되므로 (batch_size, 패치수+1, d) 로 나옴
         x += self.pos_embedding
         x = self.dropout(x)
         return x
