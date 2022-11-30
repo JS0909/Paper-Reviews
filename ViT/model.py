@@ -83,7 +83,7 @@ class VisionTransformer(nn.Module):
         super().__init__()
         self.patchembedding = LinearProjection(patch_vec_size=patch_vec_size, num_patches=num_patches,
                                                latent_vec_dim=latent_vec_dim, drop_rate=drop_rate)
-        # patch_vec_size = (p^2, chennel), num_patches = H*w / p^2, latent_vec_dim = 모델 풀 dimmension
+        # patch_vec_size = (p^2, chennel), num_patches = H*w / p^2, latent_vec_dim = 모델 풀 dimension
         
         self.transformer = nn.ModuleList([TFencoderLayer(latent_vec_dim=latent_vec_dim, num_heads=num_heads,
                                                          mlp_hidden_dim=mlp_hidden_dim, drop_rate=drop_rate)
